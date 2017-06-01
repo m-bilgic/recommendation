@@ -5,7 +5,8 @@ class Movie(object):
 		self.rating_distribution = rating_distribution
 		self.num_ratings = num_ratings
 		self.mean_rating = mean_rating
-		self.genre = None
+		self.genres = None
+		self.keywords = None
 		
 	def __repr__(self):
 		return self.title + "\t" + str(self.year) + "\t" + self.rating_distribution + "\t" + str(self.num_ratings) + "\t" + str(self.mean_rating)

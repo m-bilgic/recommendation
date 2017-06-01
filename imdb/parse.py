@@ -80,10 +80,8 @@ def parse_imdb_data():
 					year_match = year_re.search(m)
 					title = m[:year_match.start()-1]
 					year = year_match.group()[1:]
-					#movies.append(Movie(title, year, rating_distribution, num_ratings, mean_rating))
-					#print("%s \t %d \t %s" %(title, year, genre))
 					tandy = title+year
-					if tandy in genres: # FIX: TWO OR MORE TITLES IN SEPARATE YEARS, GETS MATCHED TO THE SAME GENRE
+					if tandy in genres:
 						genres[tandy].append(genre)
 					else:
 						genres[tandy]=[genre]
@@ -93,9 +91,55 @@ def parse_imdb_data():
 				#print( "<p>Error: %s</p>" % e )
 				#print("Failed to parse movie %s " %m)
 	
+	# KEYWORDS FILE
+	print("PARSING THE KEYWORDS FILE")
+	file_path = "../../imdb/keywords.list"
+	with open(file_path, 'r') as f:
+		l = None
+		while(l != "8: THE KEYWORDS LIST"):
+			l = f.readline().strip()
+		#print(l)
+		# Dashes
+		f.readline()
+		# Empty
+		f.readline()
+		# Movies
+		keywords = {}
+		for m in f:
+			#break
+		#for i in range(1000):
+			#m = f.readline()
+			if m == "\n":
+				break
+			if m.find("(VG)") != -1: #skip video games
+				continue
+			m=m.strip()
+			try:
+				m_list=m.split()
+				#print(m_list)
+				keyword = m_list[-1]
+				if episode_re.search(m) is None: # if not episode                
+					year_match = year_re.search(m)
+					title = m[:year_match.start()-1]
+					year = year_match.group()[1:]
+					tandy = title+year
+					if tandy in keywords:
+						keywords[tandy].append(keyword)
+					else:
+						keywords[tandy]=[keyword]
+			except:
+				pass
+				#e = sys.exc_info()[0]
+				#print( "<p>Error: %s</p>" % e )
+				#print("Failed to parse movie %s " %m)
+	
 	for m in movies:
 		if m.title+str(m.year) in genres:			
-			genre = genres[m.title+str(m.year)]        
-			m.genre = genre
+			gs = genres[m.title+str(m.year)]        
+			m.genres = gs
+		if m.title+str(m.year) in keywords:			
+			ks = keywords[m.title+str(m.year)]        
+			m.keywords = ks
+	
 	
 	return movies
