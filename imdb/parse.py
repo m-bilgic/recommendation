@@ -33,6 +33,8 @@ def parse_imdb_data():
 				break
 			if m.find("(VG)") != -1: #skip video games
 				continue
+			if m.find("(V)") != -1:
+				continue
 			m=m.strip()
 			try:
 				m_list=m.split()
@@ -70,6 +72,8 @@ def parse_imdb_data():
 			if m == "\n":
 				break
 			if m.find("(VG)") != -1: #skip video games
+				continue
+			if m.find("(V)") != -1:
 				continue
 			m=m.strip()
 			try:
@@ -113,6 +117,8 @@ def parse_imdb_data():
 				break
 			if m.find("(VG)") != -1: #skip video games
 				continue
+			if m.find("(V)") != -1:
+				continue
 			m=m.strip()
 			try:
 				m_list=m.split()
@@ -132,14 +138,115 @@ def parse_imdb_data():
 				#e = sys.exc_info()[0]
 				#print( "<p>Error: %s</p>" % e )
 				#print("Failed to parse movie %s " %m)
+	# MPAA Ratings
+	print("PARSING THE MPAA RATINGS REASONS FILE")
+	file_path = "../../imdb/mpaa-ratings-reasons.list"
+	with open(file_path, 'r') as f:
+		l = None
+		while(l != "MPAA RATINGS REASONS LIST"):
+			l = f.readline().strip()
+		#print(l)
+		# Double Dashes
+		f.readline()
+		# Single dashes
+		f.readline()
+		# Movies
+		mpaa = {}
+		for m in f:
+			#break
+		#for i in range(1000):
+			#m = f.readline()
+	#        if m == "\n":
+	#            break
+			if m.find("(VG)") != -1: #skip video games
+				m = f.readline()
+				while m[:3] == "RE:":
+					m = f.readline()
+				f.readline()
+				continue
+			if m.find("(V)") != -1:
+				m = f.readline()
+				while m[:3] == "RE:":
+					m = f.readline()
+				f.readline()
+				continue
+			m=m.strip()
+			try:            
+				if episode_re.search(m) is None:
+					year_match = year_re.search(m)
+					title = m[4:year_match.start()-1]
+					year = year_match.group()[1:]
+					tandy = title+year
+					mpaar = ""
+					m = f.readline()
+					while m[:3] == "RE:":
+						mpaar += " " + m[3:].strip()
+						m = f.readline()
+					mpaa[tandy] = mpaar
+					f.readline()
+			except:
+				m = f.readline()
+				while m[:3] == "RE:":
+					m = f.readline()
+				f.readline()
+				#e = sys.exc_info()[0]
+				#print( "<p>Error: %s</p>" % e )
+				#print("Failed to parse movie %s " %m)
 	
+	# Certificates
+	print("PARSING THE CERTIFICATES FILE")
+	file_path = "../../imdb/certificates.list"
+	with open(file_path, 'r') as f:
+		l = None
+		while(l != "CERTIFICATES LIST"):
+			l = f.readline().strip()
+		#print(l)
+		# Dashes
+		f.readline()
+		# Movies
+		certificates = {}
+		for m in f:
+			#break
+		#for i in range(300):
+		#    m = f.readline()
+	#        if m == "\n":
+	#            break
+			m=m.strip()
+		
+			if m.find("(VG)") != -1: #skip video games
+				continue
+			if m.find("(V)") != -1:
+				continue
+			if m.find("USA:") == -1:
+				continue
+			
+			try:            
+				if episode_re.search(m) is None:
+					year_match = year_re.search(m)
+					title = m[:year_match.start()-1]
+					year = year_match.group()[1:]
+					tandy = title+year
+					certificate = m[m.find("USA:")+4:].split('\t')[0]
+					certificates[tandy] = certificate               
+			except:
+				pass
+				#e = sys.exc_info()[0]
+				#print( "<p>Error: %s</p>" % e )
+				#print("Failed to parse movie %s " %m)
+				
 	for m in movies:
-		if m.title+str(m.year) in genres:			
+		if m.title+str(m.year) in genres:
 			gs = genres[m.title+str(m.year)]        
 			m.genres = gs
-		if m.title+str(m.year) in keywords:			
+		if m.title+str(m.year) in keywords:
 			ks = keywords[m.title+str(m.year)]        
 			m.keywords = ks
+		if m.title+str(m.year) in mpaa:
+			m.mpaa_reason = mpaa[m.title+str(m.year)]
+			mpaa_split = m.mpaa_reason.split()
+			m.mpaa_rating = mpaa_split[1]
+		if m.title+str(m.year) in certificates:
+			m.certificate = certificates[m.title+str(m.year)]
 	
 	
 	return movies
