@@ -7,7 +7,7 @@ def parse_imdb_data():
 
 	
 
-	episode_re = re.compile("\(\d\d\d\d\)\s\{") # FIX: this does not match if the year has nondigit characters
+	episode_re = re.compile("\(\d\d\d\d[/\S]*\)\s\{") # FIX: this does not match if the year has nondigit characters
 	year_re = re.compile("\(\d\d\d\d")
 	
 	movies = []
