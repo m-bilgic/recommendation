@@ -7,8 +7,8 @@ class Movie(object):
 		self.mean_rating = mean_rating
 		self.genres = None
 		self.keywords = None
-		self.certificate = "Unk"
-		self.mpaa_rating = "Unk"
+		self.certificate = "Unknown"
+		self.mpaa_rating = "Unknown"
 		self.mpaa_reason = None
 		
 	def __repr__(self):
