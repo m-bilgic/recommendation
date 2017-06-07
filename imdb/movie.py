@@ -10,7 +10,9 @@ class Movie(object):
 		self.certificate = "Unknown"
 		self.mpaa_rating = "Unknown"
 		self.mpaa_reason = None
+		self.plot = None
+		self.actors = None
 		
 	def __repr__(self):
 		#return self.title + "\t" + str(self.year) + "\t" + self.rating_distribution + "\t" + str(self.num_ratings) + "\t" + str(self.mean_rating)
-		return self.title + "\t" + "(" + str(self.year) + ")" + "\t" + "(" + self.certificate + ")"
+		return self.title + "\t" + "(" + self.year + ")" + "\t" + "(" + self.certificate + ")"
