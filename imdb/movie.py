@@ -12,6 +12,7 @@ class Movie(object):
 		self.mpaa_reason = None
 		self.plot = None
 		self.actors = None
+		self.actresses = None
 		
 	def __repr__(self):
 		#return self.title + "\t" + str(self.year) + "\t" + self.rating_distribution + "\t" + str(self.num_ratings) + "\t" + str(self.mean_rating)

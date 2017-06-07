@@ -357,6 +357,69 @@ def parse_imdb_data():
 					#print(m)
 
 					#print("E Exception")
+	titles_to_actresses = {}
+	print("PARSING THE ACTRESSES FILE")
+	#ACTORS FILE
+	file_path = "../../imdb/actresses.list"
+	with open(file_path, 'r') as f:
+		l = None
+		while(l != "THE ACTRESSES LIST"):
+			l = f.readline().strip()
+		#print(l)
+		# Dashes
+		f.readline()
+		# empty line
+		f.readline()
+		# header
+		f.readline()
+		# Dashes
+		f.readline()
+		# Movies
+
+		for m in f:
+		#for i in range(100):        
+		#    m = f.readline() # First line that has the actor's name
+			
+			m = m.strip()        
+			m=m.split('\t')
+			
+			if len(m) < 2:
+				break
+			
+			actress = m[0]
+			#print(actress)
+			
+			while True:
+				try:
+					title = m[-1]
+					if title.find("(V)") == -1 and title.find("(VG)") == -1 and title.find("(TV)") == -1 and episode_re.search(title) is None:
+						year_match = year_re.search(title)
+						if year_match is not None:
+							title = title[:year_match.start()-1]
+							year = year_match.group()[1:-1]
+							tandy = title+year
+							if tandy in titles_to_actresses:
+								titles_to_actresses[tandy].append(actress)
+							else:
+								titles_to_actresses[tandy] = [actress]
+							#print(title)
+							#print(year)
+
+					m = f.readline()
+					if m == '\n': # New actor
+						break
+					m = m.strip()
+					m = m.split('\t')
+				except:
+					pass
+					#print("B Exception")
+					#e = sys.exc_info()[0]
+					#print( "<p>Error: %s</p>" % e )
+					#print(actress)
+					#print(title)
+					#print(year)
+					#print(m)
+					#print("E Exception")
 				
 	for m in movies:
 		mkey = m.title + m.year
@@ -376,6 +439,8 @@ def parse_imdb_data():
 			m.plot = plots[mkey]
 		if mkey in titles_to_actors:
 			m.actors = titles_to_actors[mkey]
+		if mkey in titles_to_actresses:
+			m.actresses = titles_to_actresses[mkey]
 	
 	
 	return movies
