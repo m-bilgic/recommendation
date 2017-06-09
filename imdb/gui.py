@@ -182,7 +182,7 @@ modeling_frame.columnconfigure(1, weight=1)
 
 training_set = set()
 
-def add_selected_to_data():
+def add_selected_to_training_data():
     selected_iids = data_tree.selection()
     training_set.update(selected_iids)
     #print(training_set)
@@ -190,16 +190,26 @@ def add_selected_to_data():
 def edit_training_data():
     pass
 
-def train_a_model():
+def train_a_model_on_displayed_data():
+    data = data_tree.get_children('')    
+    dataset = set()    
+    for iid in data:
+       dataset.add(iid)
+    train_a_model(dataset)
+
+def train_a_model_on_training_set():
+    train_a_model(training_set)
+
+def train_a_model(dataset):
     num_movies = len(m_)
     y = np.zeros(num_movies)
-    for iid in training_set:
+    for iid in dataset:
         y[int(iid)] = 1
     clf = svm.OneClassSVM(kernel='linear')
     clf.fit(X[np.where(y==1)])
     clf_coefs = clf.coef_.toarray()[0]
     coefs_diags = diags(clf_coefs, 0)
-    feat_indices = np.argsort(np.abs(clf_coefs))[::-1]
+    #feat_indices = np.argsort(np.abs(clf_coefs))[::-1]
     #for i in feat_indices[:30]:
     #    print(vocabulary[i])
     #print()
@@ -259,12 +269,13 @@ def train_a_model():
     
     
 
-X, vocabulary = construct_matrices(m_, use_plot=False)
+X, vocabulary = construct_matrices(m_, use_plot=True, use_genre=False)
 print(X.shape)
 
-ttk.Button(modeling_frame, text="Add Selected to Training Data", command=add_selected_to_data).grid(column=0, row=0, sticky = "nsew")
-ttk.Button(modeling_frame, text="Edit Training Data", command=edit_training_data).grid(column=1, row=0, sticky = "nsew")
-ttk.Button(modeling_frame, text="Train a Model", command=train_a_model).grid(column=0, row=1, columnspan=2, sticky = "nsew")
+ttk.Button(modeling_frame, text="Add Selected to Training Set", command=add_selected_to_training_data).grid(column=0, row=0, sticky = "nsew")
+ttk.Button(modeling_frame, text="Edit Training Set", command=edit_training_data).grid(column=1, row=0, sticky = "nsew")
+ttk.Button(modeling_frame, text="Train a Model on Training Set", command=train_a_model_on_training_set).grid(column=0, row=1, sticky = "nsew")
+ttk.Button(modeling_frame, text="Train a Model on Displayed Data", command=train_a_model_on_displayed_data).grid(column=1, row=1, sticky = "nsew")
 
 
 root.mainloop()
