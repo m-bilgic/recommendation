@@ -261,7 +261,19 @@ def train_a_model_on_displayed_data():
 def train_a_model_on_training_set():
     train_a_model(training_set_iids)
 
-def train_a_model(dataset):
+def train_a_model(dataset):    
+    for iid in training_set_iids:
+        m = m_[iid]
+        if m.is_in_training:
+            ti = m.training_instance
+            if ti.rationale_keywords is not None:
+                for k in ti.rationale_keywords:
+                    try:
+                        vi = vocabulary.index("Keyword:"+k)
+                        X[iid, vi] *= 10
+                    except ValueError:
+                        pass
+    
     num_movies = len(m_)
     y = np.zeros(num_movies)
     for iid in dataset:
