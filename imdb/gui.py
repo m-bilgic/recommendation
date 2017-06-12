@@ -17,7 +17,7 @@ from tkinter import font
 
 # In[]:
 
-from movie import Movie
+from movie import Movie, TrainingInstance
 from parse import parse_imdb_data
 from displayfiltermovies import BrowseAllMovies, sortby, BrowseRecommendations
 
@@ -150,13 +150,37 @@ else:
     movies = parse_imdb_data()
     pickle.dump(movies, open( "movies.p", "wb" ))
 
-
+if os.path.isfile("training_instances.p"):
+    training_instances = pickle.load(open("training_instances.p", "rb"))
+else:
+    training_instances = {}
+    
 # In[]:
 m_ = movies
-#m_=list(filter(lambda m: m.year>2000, m_))
-m_=list(filter(lambda m: m.num_ratings>1000, m_))
-#m_=list(filter(lambda m: m.mean_rating>9.3, m_))
+#m_= list(filter(lambda m: m.year>2000, m_))
+m_= list(filter(lambda m: m.num_ratings>1000, m_))
+#m_= list(filter(lambda m: m.mean_rating>9.3, m_))
+m_= list(filter(lambda m: m.keywords is not None, m_))
 print(len(m_))
+
+X, vocabulary = construct_matrices(m_, use_plot=False, use_genre=False)
+print(X.shape)
+
+# In[]
+
+training_set_iids = set()
+
+for i in range(len(m_)):
+    m = m_[i]
+    if m.title+m.year in training_instances:
+        training_set_iids.add(i)
+        m.is_in_training = True
+        m.training_instance = training_instances[m.title+m.year]
+    else:
+        m.is_in_training = False
+        m.training_instance = None
+
+# In[]
 
 
 root = Tk()
@@ -180,15 +204,52 @@ modeling_frame.grid(column=0, row=1, sticky = "nsew")
 modeling_frame.columnconfigure(0, weight=1)
 modeling_frame.columnconfigure(1, weight=1)
 
-training_set = set()
 
 def add_selected_to_training_data():
-    selected_iids = data_tree.selection()
-    training_set.update(selected_iids)
-    #print(training_set)
+    selected_iids = data_tree.selection()    
+    for iid in selected_iids:
+        m = m_[int(iid)]
+        training_set_iids.add(int(iid))
+        tid = m.title+m.year
+        training_instances[tid] = TrainingInstance(tid)        
+    
 
 def edit_training_data():
-    pass
+    tl = Toplevel(root)
+    tl.title("Training Set")
+    
+    di = (("Title", "title", False), ("Year", "year", False), ('Num Ratings', 'num_ratings', True), 
+      ('Mean Rating', 'mean_rating', True), ('USA Certificate', 'certificate', False))
+    
+    rated_movies = []
+    original_iids = []
+    
+    for iid in training_set_iids:
+        rated_movies.append(m_[int(iid)])
+        original_iids.append(iid)
+    
+    dfm = BrowseAllMovies(tl, rated_movies, di, padding="3 3 12 12")
+    dfm.grid(column=0, row=0, sticky="nsew")
+    training_tree = dfm.get_tree()
+    
+    def remove_selected_from_training_set():
+        selected_iids = training_tree.selection()
+        for iid in selected_iids:
+            training_set_iids.remove(original_iids[int(iid)])            
+            m = m_[original_iids[int(iid)]]
+            training_instances.pop(m.title + m.year, None)
+        training_tree.delete(selected_iids)
+    
+
+    ttk.Button(tl, text="Remove Selected from Training Set", command=remove_selected_from_training_set).grid(column=0, row=1, sticky = "nsew")
+    
+    
+    ttk.Button(tl, text="Remove Selected from Training Set", command=remove_selected_from_training_set).grid(column=0, row=1, sticky = "nsew")
+    
+
+    
+    tl.columnconfigure(0, weight=1)
+    tl.rowconfigure(0, weight=1)
 
 def train_a_model_on_displayed_data():
     data = data_tree.get_children('')    
@@ -198,7 +259,7 @@ def train_a_model_on_displayed_data():
     train_a_model(dataset)
 
 def train_a_model_on_training_set():
-    train_a_model(training_set)
+    train_a_model(training_set_iids)
 
 def train_a_model(dataset):
     num_movies = len(m_)
@@ -214,6 +275,9 @@ def train_a_model(dataset):
     #    print(vocabulary[i])
     #print()
     model_window = Toplevel(root)
+    
+    model_window.title("Recommended Movies")
+    
     features_frame = ttk.Labelframe(model_window, padding="3 3 12 12", text="Features")
     features_frame.grid(column=0, row=0, sticky="nsew")
     rec_movies_frame = ttk.Labelframe(model_window, padding="3 3 12 12", text="Recommended Movies")
@@ -269,8 +333,7 @@ def train_a_model(dataset):
     
     
 
-X, vocabulary = construct_matrices(m_, use_plot=True, use_genre=False)
-print(X.shape)
+
 
 ttk.Button(modeling_frame, text="Add Selected to Training Set", command=add_selected_to_training_data).grid(column=0, row=0, sticky = "nsew")
 ttk.Button(modeling_frame, text="Edit Training Set", command=edit_training_data).grid(column=1, row=0, sticky = "nsew")
@@ -279,4 +342,8 @@ ttk.Button(modeling_frame, text="Train a Model on Displayed Data", command=train
 
 
 root.mainloop()
+
+# In[]
+
+pickle.dump(training_instances, open( "training_instances.p", "wb" ))
 

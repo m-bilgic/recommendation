@@ -6,7 +6,7 @@ Created on Thu Jun  8 14:41:18 2017
 """
 
 from tkinter import ttk
-from tkinter import StringVar, IntVar, DoubleVar, Listbox, Text, Toplevel, VERTICAL, HORIZONTAL
+from tkinter import StringVar, IntVar, DoubleVar, Listbox, Text, Toplevel, VERTICAL, HORIZONTAL, END
 import tkinter.font as tkFont
 from tkinter import font
 
@@ -384,6 +384,7 @@ class BrowseRecommendations(DisplayFilterMovies):
         
         #print("Double click on %s"  %self.movies[int(selected_iid)])
         tl = Toplevel(self)
+        tl.title("Explanation of the Recommendation")
         
         tl.columnconfigure(0, weight=1)
         tl.columnconfigure(1, weight=1)
@@ -421,45 +422,122 @@ class SingleMovie(ttk.Frame):
         info_frame = ttk.Frame(self, padding="3 3 12 12")
         info_frame.grid(column=0, row=1, sticky="nsew")
         
+        self.movie = m
+        
+        row_i = 0
+        
         if m.genres is not None:
             g = ", ".join(m.genres)
-            ttk.Label(info_frame, text="Genres: " + g).grid(column=0, row=0, sticky="W")      
+            ttk.Label(info_frame, text="Genres: " + g).grid(column=0, row=row_i, sticky="W")
+            row_i += 1
         if m.keywords is not None:
-            ttk.Label(info_frame, text="Keywords" ).grid(column=0, row=1, sticky="W")
-            kl= Listbox(info_frame, listvariable=StringVar(value=m.keywords), height=5)
-            kl.grid(column=0, row=2, sticky="nsew")
+            
+            ttk.Label(info_frame, text="Keywords" ).grid(column=0, row=row_i, sticky="W")
+            row_i += 1
+            
+            non_rationale_keywords = set()
+            rationale_keywords = set()
+            
+            non_rationale_keywords.update(m.keywords)
+            
+            if m.is_in_training:
+                ti = m.training_instance
+                if ti.rationale_keywords is not None:
+                    rationale_keywords.update(ti.rationale_keywords)
+                    non_rationale_keywords.difference_update(rationale_keywords)
+            
+            nrk_var = StringVar(value=sorted(list(non_rationale_keywords)))
+            kl = Listbox(info_frame, listvariable=nrk_var, height=5)
+            kl.grid(column=0, row=row_i, rowspan = 4, sticky="nsew")
+            
             vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=kl.yview)
             kl.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=2, sticky="nsew")
+            vs.grid(column=1, row=row_i, rowspan = 4, sticky="nsew")            
+            
+            rk_var = StringVar(value=sorted(list(rationale_keywords)))
+            rkl= Listbox(info_frame, listvariable=rk_var, height=5)
+            rkl.grid(column=3, row=row_i, rowspan = 4, sticky="nsew")
+            
+            ttk.Button(info_frame, text=">", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_rationale(nv, rv, nrlb, rlb, "rationale_keywords")).grid(column=2, row=row_i+1, sticky = "W")
+            ttk.Button(info_frame, text="<", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_nonrationale(nv, rv, nrlb, rlb, "rationale_keywords")).grid(column=2, row=row_i+2, sticky = "W")
+
+            
+            vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=rkl.yview)
+            rkl.configure(yscrollcommand=vs.set)
+            vs.grid(column=4, row=row_i, rowspan = 4, sticky="nsew")            
+            
+            row_i += 4
+            
             hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=kl.xview)
             kl.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=3, sticky="nsew")
+            hs.grid(column=0, row=row_i, sticky="nsew")
+            row_i += 1
         if m.plot is not None:
-            ttk.Label(info_frame, text="Plot" ).grid(column=0, row=4, sticky="W")
+            ttk.Label(info_frame, text="Plot" ).grid(column=0, row=row_i, sticky="W")
+            row_i += 1
             pt = Text(info_frame, wrap='word')
             pt.insert('1.0', m.plot)
-            pt.grid(column=0, row=5, sticky="nsew")
+            pt.grid(column=0, row=row_i, sticky="nsew")
+            row_i += 1
         if m.actors is not None:
-            ttk.Label(info_frame, text="Actors" ).grid(column=0, row=6, sticky="W")
+            ttk.Label(info_frame, text="Actors" ).grid(column=0, row=row_i, sticky="W")
+            row_i += 1
             al= Listbox(info_frame, listvariable=StringVar(value=m.actors), height=5)
-            al.grid(column=0, row=7, sticky="nsew")
+            al.grid(column=0, row=row_i, sticky="nsew")
             vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=al.yview)
             al.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=7, sticky="nsew")
+            vs.grid(column=1, row=row_i, sticky="nsew")
+            row_i += 1
             hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=al.xview)
             al.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=8, sticky="nsew")
+            hs.grid(column=0, row=row_i, sticky="nsew")
+            row_i += 1
             
         if m.actresses is not None:
-            ttk.Label(info_frame, text="Actresses" ).grid(column=0, row=9, sticky="W")
+            ttk.Label(info_frame, text="Actresses" ).grid(column=0, row=row_i, sticky="W")
+            row_i += 1
             al= Listbox(info_frame, listvariable=StringVar(value=m.actresses), height=5)
-            al.grid(column=0, row=10, sticky="nsew")
+            al.grid(column=0, row=row_i, sticky="nsew")
             vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=al.yview)
             al.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=10, sticky="nsew")
+            vs.grid(column=1, row=row_i, sticky="nsew")
+            row_i += 1
             hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=al.xview)
             al.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=11, sticky="nsew")
-
-
-
+            hs.grid(column=0, row=row_i, sticky="nsew")
+    
+    def make_it_rationale(self, nr_var, ra_var, nrlb, rlb, att_name):
+        idxs = nrlb.curselection()
+        if len(idxs) == 1:
+            idx = int(idxs[0])
+            k = nrlb.get(idx)
+            
+            nr_list = list(nrlb.get(0, END))
+            ra_list = list(rlb.get(0, END))
+            
+            nr_list.remove(k)
+            ra_list.append(k)            
+            
+            nr_var.set(sorted(nr_list))
+            ra_var.set(sorted(ra_list))
+            
+            if self.movie.is_in_training:            
+                setattr(self.movie.training_instance, att_name, ra_list)
+                
+    def make_it_nonrationale(self, nr_var, ra_var, nrlb, rlb, att_name):
+        idxs = rlb.curselection()
+        if len(idxs) == 1:
+            idx = int(idxs[0])
+            k = rlb.get(idx)
+            
+            nr_list = list(nrlb.get(0, END))
+            ra_list = list(rlb.get(0, END))
+            
+            ra_list.remove(k)
+            nr_list.append(k)            
+            
+            nr_var.set(sorted(nr_list))
+            ra_var.set(sorted(ra_list))
+            
+            if self.movie.is_in_training:            
+                setattr(self.movie.training_instance, att_name, ra_list)
