@@ -11,8 +11,11 @@ class Movie(object):
         self.mpaa_rating = "Unknown"
         self.mpaa_reason = None
         self.plot = None
+        self.plot_terms = None
         self.actors = None
         self.actresses = None
+        
+        self.iid = None
         
         self.is_in_training = False
         self.training_instance = None
@@ -28,11 +31,25 @@ class TrainingInstance(object):
         self.rationale_keywords = None
         self.rationale_actors = None
         self.rationale_actresses = None
+        self.rationale_plot_terms = None
+    
+    def add_rationales(self, field, rationales):
+        fv = getattr(self, field, None)
+        if fv is None:
+            fv = []
+            setattr(self, field, fv)
+        fv += rationales
+            
     
     def add_rationale_keywords(self, keywords):
         if self.rationale_keywords is None:
             self.rationale_keywords = []
         self.rationale_keywords += keywords
+    
+    def add_rationale_plot_terms(self, plot_terms):
+        if self.rationale_plot_terms is None:
+            self.rationale_plot_terms = []
+        self.rationale_plot_terms += plot_terms        
     
     def add_rationale_actors(self, actors):
         if self.rationale_actors is None:

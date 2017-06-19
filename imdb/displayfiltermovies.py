@@ -12,7 +12,7 @@ from tkinter import font
 
 from scipy.sparse import diags
 
-def sortby(tree, col, descending, is_number=False):
+def sortby_old(tree, col, descending, is_number=False):
     """sort tree contents when a column header is clicked on"""
     # grab values to sort
     data = [(tree.set(child, col), child)         for child in tree.get_children('')]
@@ -25,7 +25,30 @@ def sortby(tree, col, descending, is_number=False):
     for ix, item in enumerate(data):
         tree.move(item[1], '', ix)
     # switch the heading so it will sort in the opposite direction
-    tree.heading(col, command=lambda col=col, is_num = is_number : sortby(tree, col, int(not descending), is_number=is_num))  
+    tree.heading(col, command=lambda col=col, is_num = is_number : sortby_old(tree, col, int(not descending), is_number=is_num))  
+
+def sortby(tree, col, descending, is_number=False):
+    """sort tree contents when a column header is clicked on"""
+    #t0 = time()
+    # grab values to sort
+    data = [(tree.set(child, col), child)         for child in tree.get_children('')]
+    # if the data to be sorted is numeric change to float
+    #data =  change_numeric(data)
+    # now sort the data in place
+    if(is_number): 
+        data = [(float(d[0]), d[1]) for d in data]
+    data.sort(reverse=descending)
+    
+    data = [(d[1], tree.item(d[1])['values']) for d in data]    
+    tree.delete(*tree.get_children())
+    for d in data:
+        tree.insert('', 'end', iid=d[0], values=d[1])     
+    
+    # switch the heading so it will sort in the opposite direction
+    tree.heading(col, command=lambda col=col, is_num = is_number : sortby(tree, col, int(not descending), is_number=is_num))
+    
+    #duration = time() - t0
+    #print("Took %0.2f seconds." %duration)  
     
 
 class DisplayFilterMovies(ttk.Frame):
@@ -118,7 +141,7 @@ class DisplayFilterMovies(ttk.Frame):
         ttk.Entry(phrasefilterframe, textvariable=self.actressphrase).grid(column=1, row=5, sticky="nsew")
         
         certfilterframe = ttk.Labelframe(filterframe, padding="3 3 12 12", text="USA Certificate")
-        certfilterframe.grid(column=0, row=6, sticky="nsew")
+        certfilterframe.grid(column=0, row=4, sticky="nsew")
         certfilterframe['borderwidth'] = 2
         certfilterframe['relief'] = 'sunken'
         
@@ -154,8 +177,15 @@ class DisplayFilterMovies(ttk.Frame):
         self.cert_vars.append(cert_Unk)
         self.cert_values.append("Unknown")
         
+        
+        trainingfilterframe = ttk.Labelframe(filterframe, padding="3 3 12 12", text="Training Instances")
+        trainingfilterframe.grid(column=0, row=6, sticky="nsew")
+        self.show_training = StringVar()
+        self.show_training.set("Yes")
+        ttk.Checkbutton(trainingfilterframe, text="Show Training Instances", onvalue = "Yes", variable=self.show_training).grid(column=0, row=0, sticky="w")
+        
         buttonfilterframe = ttk.Frame(filterframe, padding="3 3 12 12")
-        buttonfilterframe.grid(column=0, row=5, sticky="ne")
+        buttonfilterframe.grid(column=0, row=7, sticky="ne")
         
         ttk.Button(buttonfilterframe, text="Filter", command=self._filter_data).grid(column=0, row=0, sticky = "W")
         ttk.Button(buttonfilterframe, text="Reset", command=self._reset_filters).grid(column=1, row=0, sticky = "E")
@@ -331,6 +361,10 @@ class DisplayFilterMovies(ttk.Frame):
             if m.certificate not in display_certificates:
                 remove_iids.add(iid)
             
+            if self.show_training.get() != "Yes":
+                if m.is_in_training:
+                    remove_iids.add(iid)
+            
         #data_tree.delete(list(remove_iids))
         for iid in remove_iids:
             self.data_tree.delete(iid)
@@ -356,6 +390,7 @@ class DisplayFilterMovies(ttk.Frame):
         self.actressphrase.set("")
         self.titlephrase.set("")
         self.plotphrase.set("")
+        self.show_training.set("Yes")
 
 class BrowseAllMovies(DisplayFilterMovies):
     def double_click(self, e):
@@ -430,81 +465,80 @@ class SingleMovie(ttk.Frame):
             g = ", ".join(m.genres)
             ttk.Label(info_frame, text="Genres: " + g).grid(column=0, row=row_i, sticky="W")
             row_i += 1
+        
         if m.keywords is not None:
             
-            ttk.Label(info_frame, text="Keywords" ).grid(column=0, row=row_i, sticky="W")
-            row_i += 1
-            
-            non_rationale_keywords = set()
-            rationale_keywords = set()
-            
-            non_rationale_keywords.update(m.keywords)
-            
-            if m.is_in_training:
-                ti = m.training_instance
-                if ti.rationale_keywords is not None:
-                    rationale_keywords.update(ti.rationale_keywords)
-                    non_rationale_keywords.difference_update(rationale_keywords)
-            
-            nrk_var = StringVar(value=sorted(list(non_rationale_keywords)))
-            kl = Listbox(info_frame, listvariable=nrk_var, height=5)
-            kl.grid(column=0, row=row_i, rowspan = 4, sticky="nsew")
-            
-            vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=kl.yview)
-            kl.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=row_i, rowspan = 4, sticky="nsew")            
-            
-            rk_var = StringVar(value=sorted(list(rationale_keywords)))
-            rkl= Listbox(info_frame, listvariable=rk_var, height=5)
-            rkl.grid(column=3, row=row_i, rowspan = 4, sticky="nsew")
-            
-            ttk.Button(info_frame, text=">", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_rationale(nv, rv, nrlb, rlb, "rationale_keywords")).grid(column=2, row=row_i+1, sticky = "W")
-            ttk.Button(info_frame, text="<", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_nonrationale(nv, rv, nrlb, rlb, "rationale_keywords")).grid(column=2, row=row_i+2, sticky = "W")
+            row_i = self._add_list_boxes(info_frame, "Keywords", "keywords", row_i)
 
-            
-            vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=rkl.yview)
-            rkl.configure(yscrollcommand=vs.set)
-            vs.grid(column=4, row=row_i, rowspan = 4, sticky="nsew")            
-            
-            row_i += 4
-            
-            hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=kl.xview)
-            kl.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=row_i, sticky="nsew")
-            row_i += 1
         if m.plot is not None:
             ttk.Label(info_frame, text="Plot" ).grid(column=0, row=row_i, sticky="W")
             row_i += 1
-            pt = Text(info_frame, wrap='word')
+            pt = Text(info_frame, height = 7, wrap='word')
             pt.insert('1.0', m.plot)
             pt.grid(column=0, row=row_i, sticky="nsew")
             row_i += 1
+        
+        if m.plot_terms is not None:
+            
+            row_i = self._add_list_boxes(info_frame, "Plot Terms", "plot_terms", row_i)
+            
         if m.actors is not None:
-            ttk.Label(info_frame, text="Actors" ).grid(column=0, row=row_i, sticky="W")
-            row_i += 1
-            al= Listbox(info_frame, listvariable=StringVar(value=m.actors), height=5)
-            al.grid(column=0, row=row_i, sticky="nsew")
-            vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=al.yview)
-            al.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=row_i, sticky="nsew")
-            row_i += 1
-            hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=al.xview)
-            al.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=row_i, sticky="nsew")
-            row_i += 1
+            
+            row_i = self._add_list_boxes(info_frame, "Actors", "actors", row_i)
             
         if m.actresses is not None:
-            ttk.Label(info_frame, text="Actresses" ).grid(column=0, row=row_i, sticky="W")
-            row_i += 1
-            al= Listbox(info_frame, listvariable=StringVar(value=m.actresses), height=5)
-            al.grid(column=0, row=row_i, sticky="nsew")
-            vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=al.yview)
-            al.configure(yscrollcommand=vs.set)
-            vs.grid(column=1, row=row_i, sticky="nsew")
-            row_i += 1
-            hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=al.xview)
-            al.configure(xscrollcommand=hs.set)
-            hs.grid(column=0, row=row_i, sticky="nsew")
+            
+            row_i = self._add_list_boxes(info_frame, "Actresses", "actresses", row_i)
+    
+    
+    def _add_list_boxes(self, info_frame, label_text, movie_field, row_i):
+        
+        m = self.movie
+        
+        ttk.Label(info_frame, text=label_text).grid(column=0, row=row_i, sticky="W")
+        
+        row_i += 1
+        
+        
+        non_rationale_entries = set()        
+        rationale_entries = set()
+        
+        non_rationale_entries.update(getattr(m, movie_field))
+        
+        if m.is_in_training:
+            ti = m.training_instance
+            if getattr(ti, "rationale_"+movie_field, None) is not None:
+                rationale_entries.update(getattr(ti, "rationale_"+movie_field))
+                non_rationale_entries.difference_update(rationale_entries)
+        
+        nrk_var = StringVar(value=sorted(list(non_rationale_entries)))
+        kl = Listbox(info_frame, listvariable=nrk_var, height=8)
+        kl.grid(column=0, row=row_i, rowspan = 4, sticky="nsew")
+        
+        vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=kl.yview)
+        kl.configure(yscrollcommand=vs.set)
+        vs.grid(column=1, row=row_i, rowspan = 4, sticky="nsew")            
+        
+        rk_var = StringVar(value=sorted(list(rationale_entries)))
+        rkl= Listbox(info_frame, listvariable=rk_var, height=8)
+        rkl.grid(column=3, row=row_i, rowspan = 4, sticky="nsew")
+        
+        ttk.Button(info_frame, text=">", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_rationale(nv, rv, nrlb, rlb, "rationale_"+movie_field)).grid(column=2, row=row_i+1, sticky = "W")
+        ttk.Button(info_frame, text="<", command=lambda nv=nrk_var, rv=rk_var, nrlb=kl, rlb=rkl: self.make_it_nonrationale(nv, rv, nrlb, rlb, "rationale_"+movie_field)).grid(column=2, row=row_i+2, sticky = "W")
+
+        
+        vs = ttk.Scrollbar(info_frame, orient=VERTICAL, command=rkl.yview)
+        rkl.configure(yscrollcommand=vs.set)
+        vs.grid(column=4, row=row_i, rowspan = 4, sticky="nsew")            
+        
+        row_i += 4
+        
+        hs = ttk.Scrollbar(info_frame, orient=HORIZONTAL, command=kl.xview)
+        kl.configure(xscrollcommand=hs.set)
+        hs.grid(column=0, row=row_i, sticky="nsew")
+        row_i += 1
+        return row_i
+    
     
     def make_it_rationale(self, nr_var, ra_var, nrlb, rlb, att_name):
         idxs = nrlb.curselection()
